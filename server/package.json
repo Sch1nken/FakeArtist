@@ -1,0 +1,32 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build2": "tsc && esbuild dist/index.js --bundle --platform=neutral --outfile=bundle/index.js",
+    "watch": "nodemon --exec pnpm dev",
+    "dev": "tsx src/index.ts",
+    "start": "tsx dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "nodemonConfig": {
+    "ignore": "./src/**"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "shared": "workspace:",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.13",
+    "esbuild": "^0.25.6",
+    "nodemon": "^3.1.10",
+    "typescript": "^5.8.3"
+  }
+}

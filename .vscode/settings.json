@@ -1,0 +1,11 @@
+{
+    "javascript.referencesCodeLens.showOnAllFunctions": false,
+    "javascript.referencesCodeLens.enabled": false,
+    "typescript.implementationsCodeLens.enabled": true,
+    "typescript.implementationsCodeLens.showOnInterfaceMethods": true,
+    "typescript.referencesCodeLens.enabled": false,
+    "typescript.referencesCodeLens.showOnAllFunctions": false,
+    "javascript.format.semicolons": "insert",
+    "typescript.format.semicolons": "insert",
+    "djlint.showInstallError": false
+}

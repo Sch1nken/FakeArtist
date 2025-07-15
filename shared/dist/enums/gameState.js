@@ -1,0 +1,8 @@
+export var GAME_STATE;
+(function (GAME_STATE) {
+    GAME_STATE[GAME_STATE["LOBBY"] = 0] = "LOBBY";
+    GAME_STATE[GAME_STATE["TOPIC_SELECTION"] = 1] = "TOPIC_SELECTION";
+    GAME_STATE[GAME_STATE["DRAWING"] = 2] = "DRAWING";
+    GAME_STATE[GAME_STATE["VOTING"] = 3] = "VOTING";
+    GAME_STATE[GAME_STATE["RESULTS"] = 4] = "RESULTS"; // -> basically Lobby state again?
+})(GAME_STATE || (GAME_STATE = {}));
