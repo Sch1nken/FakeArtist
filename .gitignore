@@ -1,0 +1,13 @@
+node_modules/
+.vscode/
+
+pnpm-lock.yaml
+package-lock.yaml
+
+server/node_modules/
+server/dist/
+
+shared/dist/
+
+client/node_modules/
+client/dist/
