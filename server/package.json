@@ -3,11 +3,11 @@
   "module": "module",
   "scripts": {
     "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js",
-    "dev:watch": "nodemon --exec pnpm dev -e ts,js,json",
-    "dev": "pnpm build && node dist/index.js"
+    "dev": "nodemon --exec pnpm start -e ts,json",
+    "start": "pnpm build && node dist/index.js"
   },
   "nodemonConfig": {
-    "ignore": ["./dist/**"]
+    "ignore": ["**/dist/**", "**/node_modules/**"]
   },
   "dependencies": {
     "express": "^5.1.0",

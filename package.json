@@ -6,7 +6,7 @@
     "build:client": "pnpm --filter client build",
     "build:shared": "pnpm --filter shared build",
     "build": "pnpm -r build",
-    "dev": "build && pnpm --filter client,server dev"
+    "dev": "pnpm build && pnpm --filter !shared dev"
   },
   "license": "ISC",
   "type": "module",
