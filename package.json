@@ -6,11 +6,12 @@
     "build:client": "pnpm --filter client build",
     "build:shared": "pnpm --filter shared build",
     "build": "pnpm -r build",
-    "dev": "pnpm build && pnpm --filter !shared dev"
+    "dev": "pnpm build && concurrently -k -n shared,server,client -c blue,green,magenta \"pnpm --filter shared dev\" \"pnpm --filter server dev\" \"pnpm --filter client dev\""
   },
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "concurrently": "^9.2.0",
     "typescript": "^5.8.3"
   }
 }
