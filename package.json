@@ -1,19 +1,13 @@
 {
   "name": "fakeartist",
   "version": "1.0.0",
-  "description": "",
-  "main": "dist/server/index.js",
   "scripts": {
     "build:server": "pnpm --filter server build",
     "build:client": "pnpm --filter client build",
     "build:shared": "pnpm --filter shared build",
-    "build": "pnpm -r build ",
-    "dev": "tsc --watch & node dist/server/index.js",
-    "start": "node server/dist/server/index.js & vite dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm -r build",
+    "dev": "build && pnpm --filter client,server dev"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
