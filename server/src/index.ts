@@ -2,8 +2,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 
-import { Game } from './game';
-import { RoomCodeGenerator } from './roomGenerator';
+import { Game } from './game.js';
+import { RoomCodeGenerator } from './roomGenerator.js';
 
 declare module 'socket.io' {
     interface Socket {

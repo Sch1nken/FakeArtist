@@ -1,6 +1,6 @@
-import { GAME_STATE } from "..";
-import { IPlayer } from "..";
-import { IDrawData } from "..";
+import { GAME_STATE } from "../enums/gameState.js";
+import { IDrawData } from "./drawData.js";
+import { IPlayer } from "./player.js";
 export interface IGame {
     room_id: string;
     topic: string;

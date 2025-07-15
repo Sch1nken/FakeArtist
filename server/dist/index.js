@@ -6,8 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
-const game_1 = require("./game");
-const roomGenerator_1 = require("./roomGenerator");
+const game_js_1 = require("./game.js");
+const roomGenerator_js_1 = require("./roomGenerator.js");
 const app = (0, express_1.default)();
 const http = (0, http_1.createServer)(app);
 const io = new socket_io_1.Server(http, {
@@ -22,7 +22,7 @@ app.get('/', (_req, res) => {
     res.sendFile(path.join(__dirname, '../../public/index.html'));
 });*/
 const active_games = {};
-const roomCodeGenerator = new roomGenerator_1.RoomCodeGenerator();
+const roomCodeGenerator = new roomGenerator_js_1.RoomCodeGenerator();
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
     socket.on('create_room', (username, persistentId) => {
@@ -34,7 +34,7 @@ io.on('connection', (socket) => {
         while (active_games[room_id]) {
             room_id = roomCodeGenerator.randomId();
         }
-        const game = new game_1.Game(room_id, io);
+        const game = new game_js_1.Game(room_id, io);
         active_games[room_id] = game;
         console.log(`Room ${room_id} created by ${username} (${socket.id})`);
         socket.emit('join_room', room_id);

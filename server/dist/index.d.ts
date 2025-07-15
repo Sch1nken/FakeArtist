@@ -1,4 +1,4 @@
-import { Game } from './game';
+import { Game } from './game.js';
 declare module 'socket.io' {
     interface Socket {
         game?: Game;

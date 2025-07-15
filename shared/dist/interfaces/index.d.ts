@@ -1,4 +1,4 @@
-export { IGame } from './game';
-export { IPlayer } from './player';
-export { IVoteData } from './voteData';
-export { IDrawData } from './drawData';
+export { IGame } from './game.js';
+export { IPlayer } from './player.js';
+export { IVoteData } from './voteData.js';
+export { IDrawData } from './drawData.js';

@@ -1,4 +1,4 @@
-import { IPlayer } from "..";
+import { IPlayer } from "./player.js";
 export interface IVoteData {
     playersVoted: string[];
     done?: boolean;
