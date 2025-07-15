@@ -1,10 +1,10 @@
 export interface IPlayer {
     id: string; // socket id
+    isSpectator: boolean;
     persistentId: string; // persisten id from client localStorage
-    playerName: string;
     playerColor: string; // Maybe have a fixed array?
-    score: number;
+    playerName: string;
     ready: boolean;
 
-    isSpectator: boolean;
+    score: number;
 }

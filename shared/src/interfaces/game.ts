@@ -3,39 +3,24 @@ import { IPlayer } from "..";
 import { IDrawData } from "..";
 
 export interface IGame {
-    room_id: string;
-    topic: string;
-    hint: string;
-    currentGameState: GAME_STATE;
-    players: IPlayer[];
-    disconnectedDuringSession: string[];
-    leader: IPlayer | null;
-    fakeArtist: IPlayer | null;
-    currentTurn: number;
-    currentPlayer: IPlayer | null;
-    playerTurn: IPlayer[];
-    possibleLeaders: IPlayer[];
     actualPlayers: IPlayer[];
-    spectators: IPlayer[];
-    turnDrawdata: IDrawData[][];
     canVote: IPlayer[];
-    playerVotes: { [playerId: string]: number; };
-
-    /*room_id: string;
-    topic: string;
-    hint: string;
-    
+    currentGameState: GAME_STATE;
+    currentPlayer: IPlayer | null;
     currentTurn: number;
-    currentPlayer: Player | null;
+    disconnectedDuringSession: string[];
+    fakeArtist: IPlayer | null;
+    hint: string;
+    leader: IPlayer | null;
+    players: IPlayer[];
+    playerTurn: IPlayer[];
+    playerVotes: { [playerId: string]: number; };
+    possibleLeaders: IPlayer[];
+    room_id: string;
 
-    gameState: GAME_STATE;
+    spectators: IPlayer[];
 
-    players: Player[];
-    disconnectedDuringSession: string[]; // persistent id
-    leader: Player | null;
-    fakeArtist: Player | null;
-    // Players actually playing, excluding spectators and leaders
-    // gets cleared/repopulated only when a new round begins
-    actualPlayers: Player[];*/
-
+    topic: string;
+    turnDrawdata: IDrawData[][];
+    reset_game_state(): void;
 }

@@ -7,7 +7,10 @@
     "start": "pnpm build && node dist/index.js"
   },
   "nodemonConfig": {
-    "ignore": ["**/dist/**", "**/node_modules/**"]
+    "ignore": [
+      "**/dist/**",
+      "**/node_modules/**"
+    ]
   },
   "dependencies": {
     "express": "^5.1.0",
