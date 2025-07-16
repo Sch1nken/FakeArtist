@@ -51,7 +51,7 @@ io.on("connection", (socket: Socket) => {
 
     console.log(`Room ${room_id} created by ${username} (${socket.id})`);
     socket.emit("join_room", room_id);
-    game.add_player(socket, username.trim(), persistentId);
+    game.addPlayer(socket, username.trim(), persistentId);
   });
 
   socket.on(
@@ -71,7 +71,7 @@ io.on("connection", (socket: Socket) => {
 
       const game = active_games[upper_room_id];
 
-      const existingPlayer = game.get_player_by_persistent_id(persistentId);
+      const existingPlayer = game.getPlayerByPersistentId(persistentId);
       if (existingPlayer && existingPlayer.id === socket.id) {
         socket.emit("room_error", "You are already in this room!");
         return;
@@ -86,7 +86,7 @@ io.on("connection", (socket: Socket) => {
       console.log(
         `User ${username} (${socket.id}) joining room ${upper_room_id}`,
       );
-      game.add_player(socket, username.trim(), persistentId);
+      game.addPlayer(socket, username.trim(), persistentId);
       socket.emit("join_room", upper_room_id);
     },
   );
@@ -94,12 +94,12 @@ io.on("connection", (socket: Socket) => {
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
     if (socket.game) {
-      socket.game.remove_player(socket.id);
+      socket.game.removePlayer(socket.id);
       if (socket.game.players.length === 0) {
         console.log(
-          `Room ${socket.game.room_id} is empty after disconnect. Deleting game.`,
+          `Room ${socket.game.roomId} is empty after disconnect. Deleting game.`,
         );
-        delete active_games[socket.game.room_id];
+        delete active_games[socket.game.roomId];
       }
     }
   });

@@ -16,11 +16,11 @@ export interface IGame {
     playerTurn: IPlayer[];
     playerVotes: { [playerId: string]: number; };
     possibleLeaders: IPlayer[];
-    room_id: string;
+    roomId: string;
 
     spectators: IPlayer[];
 
     topic: string;
     turnDrawdata: IDrawData[][];
-    reset_game_state(): void;
+    resetGameState(): void;
 }

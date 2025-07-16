@@ -53,8 +53,6 @@ export default tseslint.config(
           type: 'line-length',
 
         },
-
       },
-
     },
 );
