@@ -41,6 +41,7 @@ io.on(UPDATE_TYPE.CONNECTION, (socket: Socket) => {
   // Is I join a non-existent room, it will automatically be created?
   // This would be bad for user feedback though, as they think they joined a room
   socket.on(UPDATE_TYPE.CREATE_ROOM, (username: string, persistentId: string) => {
+    console.log("CREATE ROOM " + username);
     if (!username || username.trim() === "") {
       socket.emit(UPDATE_TYPE.ROOM_ERROR, "Invalid username!");
       return;
@@ -61,20 +62,22 @@ io.on(UPDATE_TYPE.CONNECTION, (socket: Socket) => {
 
   socket.on(
     UPDATE_TYPE.JOIN_ROOM,
-    (room_id: string, username: string, persistentId: string) => {
-      const upper_room_id = room_id.toUpperCase();
+    (roomId: string, username: string, persistentId: string) => {
+      const upperRoomId = roomId.toUpperCase();
 
       if (!username || username.trim() === "") {
         socket.emit(UPDATE_TYPE.ROOM_ERROR, "Invalid username!");
+        console.log("INVALID USERNAME" + username);
         return;
       }
 
-      if (!active_games[upper_room_id]) {
+      if (!active_games[upperRoomId]) {
         socket.emit(UPDATE_TYPE.ROOM_ERROR, "This room does not exist!");
+        console.log("ROOM DOES NOT EXIST " + upperRoomId);
         return;
       }
 
-      const game = active_games[upper_room_id];
+      const game = active_games[upperRoomId];
 
       const existingPlayer = game.getPlayerByPersistentId(persistentId);
       if (existingPlayer && existingPlayer.id === socket.id) {
@@ -88,10 +91,10 @@ io.on(UPDATE_TYPE.CONNECTION, (socket: Socket) => {
       }
 
       console.log(
-        `User ${username} (${socket.id}) joining room ${upper_room_id}`,
+        `User ${username} (${socket.id}) joining room ${upperRoomId}`,
       );
       game.addPlayer(socket, username.trim(), persistentId);
-      socket.emit(UPDATE_TYPE.JOIN_ROOM, upper_room_id);
+      socket.emit(UPDATE_TYPE.JOIN_ROOM, upperRoomId);
     },
   );
 
