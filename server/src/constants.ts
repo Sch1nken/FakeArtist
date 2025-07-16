@@ -12,3 +12,4 @@ export const AVAILABLE_COLORS = [
 ];
 
 export const MIN_PLAYERS_TO_START_GAME = 3;
+export const MAX_PLAYERS_IN_ROOM = 10;

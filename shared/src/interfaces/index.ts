@@ -1,4 +1,6 @@
 export { IGame } from './game';
 export { IPlayer } from './player';
 export { IVoteData } from './voteData';
-export { IDrawData } from './drawData';
+export { DrawPath } from './drawPath';
+export { Point } from './point';
+export { CoordinatePair } from './coordinatePair';

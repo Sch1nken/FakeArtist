@@ -1,6 +1,6 @@
 import { GAME_STATE } from "..";
 import { IPlayer } from "..";
-import { IDrawData } from "..";
+import { DrawPath } from "..";
 
 export interface IGame {
     actualPlayers: IPlayer[];
@@ -21,6 +21,6 @@ export interface IGame {
     spectators: IPlayer[];
 
     topic: string;
-    turnDrawdata: IDrawData[][];
+    turnDrawdata: DrawPath[];
     resetGameState(): void;
 }

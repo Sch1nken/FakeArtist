@@ -1,5 +1,5 @@
 import { Server, Socket } from 'socket.io';
-import { GAME_STATE, IDrawData, IGame, IPlayer, IVoteData, UPDATE_TYPE } from 'shared';
+import { CoordinatePair, GAME_STATE, DrawPath, IGame, IPlayer, IVoteData, UPDATE_TYPE } from 'shared';
 import { Player } from './player';
 import { AVAILABLE_COLORS, MIN_PLAYERS_TO_START_GAME } from './constants';
 
@@ -17,12 +17,12 @@ export class Game implements IGame {
     leader: IPlayer | null = null;
     players: IPlayer[] = [];
     playerTurn: IPlayer[] = [];
-    playerVotes: { [playerId: string]: number; } = {};
+    playerVotes: { [persistendPlayerId: string]: number; } = {};
     possibleLeaders: IPlayer[] = [];
     roomId: string;
     spectators: IPlayer[] = [];
     topic: string = '';
-    turnDrawdata: IDrawData[][] = [];
+    turnDrawdata: DrawPath[] = [];
 
     constructor(roomId: string, ioInstance: Server) {
         this.roomId = roomId;
@@ -70,22 +70,21 @@ export class Game implements IGame {
             // If game is already running, tell the new player about it
             this.io.to(socket.id).emit(UPDATE_TYPE.GAME_START);
             // Not sure if below is really needed, I think it can be handled better
-            //this.io.to(socket_.id).emit('actually_start_game', this.actualPlayers);
+            this.io.to(socket.id).emit(UPDATE_TYPE.DRAWING_START, this.actualPlayers);
         }
 
         // Tell player about the topic :)
-        let playerTopic = '';
-        if (player.isSpectator) {
-            // Don't show any info to spectators
-            // a) In case the player tries to be smart and connect with a second browser window.
-            // b) Allows spectators to also guess :) 
-            playerTopic = '? (You are a spectator. No cheating!)';
-        } else if (this.fakeArtist && player.persistentId === this.fakeArtist.persistentId) {
-            playerTopic = '? (You are the Fake Artist!)';
-        } else {
-            playerTopic = this.topic;
-        }
-        this.io.to(socket.id).emit(UPDATE_TYPE.TOPIC_SELECTED, playerTopic, this.hint);
+        // This could potentially put into its own function
+        // We could have the following setups:
+        // Broadcast to normal players (connected when the game starts)
+        // Emit to newly connected players individually
+        // OR
+        // Always emit individually, loop through all connected players by hand and call
+        // the function. Would reduce complexity
+        // According to https://stackoverflow.com/a/45091623 there is not really
+        // a difference... so lets try the loop approach
+        this.sendTopicToPlayer(player);
+
 
         for (let turn = 0; turn < this.currentTurn; turn++) {
             this.io.to(socket.id).emit(UPDATE_TYPE.ADVANCE_TURN, turn, this.playerTurn[turn]);
@@ -95,15 +94,17 @@ export class Game implements IGame {
             // If yes, this might work without issues?
             // If not, we'd need to additionally push out the current live draw-data
 
-            for (const drawData of this.turnDrawdata[turn]) {
-                this.io.to(socket.id).emit('draw_data', turn, drawData);
+            for (const drawData of this.turnDrawdata[turn].points) {
+                // Player should know about player colors and turn order so they can use the correct
+                // color for drawing on their end
+                this.io.to(socket.id).emit(UPDATE_TYPE.TURN_DRAW_DATA, turn, drawData);
             }
         }
 
         if (this.currentGameState === GAME_STATE.RESULTS ||
             this.currentGameState === GAME_STATE.VOTING) {
             this.io.to(socket.id).emit(
-                'game_finished',
+                UPDATE_TYPE.GAME_FINISH,
                 this.leader,
                 this.actualPlayers
             );
@@ -122,6 +123,8 @@ export class Game implements IGame {
                 this.updateVotes();
             }
         }
+
+        this.setupPlayerEvents(player, socket);
     }
 
     advanceTurn(): void {
@@ -150,19 +153,29 @@ export class Game implements IGame {
                 .emit(UPDATE_TYPE.ADVANCE_TURN, this.currentTurn, this.currentPlayer);
         } else {
             console.warn(`No current player for turn ${this.currentTurn} in room ${this.roomId}.`);
+            // What do? Reset to lobby? Skip player?
         }
 
         this.currentTurn++;
-    };
+    }
+
+    allPlayersReady(): boolean {
+        const activePlayers = this.players.filter(p => !p.isSpectator);
+        if (activePlayers.length < MIN_PLAYERS_TO_START_GAME) {
+            return false;
+        }
+        const notReady = activePlayers.filter((p) => !p.ready);
+        return notReady.length === 0;
+    }
 
     emitSpectatorCount(): void {
         this.io.to(this.roomId).emit(UPDATE_TYPE.SPECTATOR_COUNT, this.getSpectatorCount());
-    }
-
+    };
 
     getConnectedActivePlayers(): Player[] {
         return this.players.filter(p => p.id !== '' && !p.isSpectator);
     }
+
 
     getNextFreePlayerColor(): string {
         // TODO: There is probably better ways... but if it works...
@@ -179,11 +192,11 @@ export class Game implements IGame {
             }
         }
         return '#000000';
-    };
+    }
 
     getPlayerByPersistentId(id: string): Player | null {
         return this.players.find(item => item.persistentId === id) || null;
-    }
+    };
 
     getPlayerBySocketId(socketId: string): Player | null {
         return this.players.find(item => item.id === socketId) || null;
@@ -208,8 +221,8 @@ export class Game implements IGame {
         // Every player draws 2 times... easy way to have some sort of list to work through...
         this.playerTurn = this.actualPlayers.concat(this.actualPlayers);
         // Create new empty array with correct size
-        this.turnDrawdata = Array.from({ length: this.playerTurn.length }, () => []);
-    };
+        this.turnDrawdata = Array.from({ length: this.playerTurn.length }, () => ({ points: [] }));
+    }
 
     removePlayer(socketId: string): void {
         const playerToRemove = this.getPlayerBySocketId(socketId);
@@ -254,7 +267,7 @@ export class Game implements IGame {
                 this.updateVotes();
             }
         }
-    }
+    };
 
     resetGameState(): void {
         console.log(`Resetting game state for room ${this.roomId}`);
@@ -320,7 +333,153 @@ export class Game implements IGame {
         this.actualPlayers = remainingPlayers.sort(() => 0.5 - Math.random());
     }
 
-    start_game(): void {
+    sendTopicToPlayer(player: IPlayer): void {
+        let playerTopic = '';
+        if (player.isSpectator) {
+            // Don't show any info to spectators
+            // a) In case the player tries to be smart and connect with a second browser window.
+            // b) Allows spectators to also guess :) 
+            playerTopic = '? (You are a spectator. No cheating!)';
+        } else if (this.fakeArtist && player.persistentId === this.fakeArtist.persistentId) {
+            playerTopic = '? (You are the Fake Artist!)';
+        } else {
+            playerTopic = this.topic;
+        }
+        this.io.to(player.id).emit(UPDATE_TYPE.TOPIC_SELECTED, playerTopic, this.hint);
+    }
+
+    setupPlayerEvents(player: IPlayer, socket: Socket): void {
+        //const playerSocket = this.io.sockets.sockets.get(player.id);
+
+        socket.on(UPDATE_TYPE.PLAYER_READY, () => {
+            console.log(`Player ${socket.id} ready in room ${this.roomId}`);
+
+            if (player.isSpectator || this.currentGameState !== GAME_STATE.LOBBY) {
+                this.io.to(socket.id).emit(UPDATE_TYPE.MESSAGE, 'You cannot ready up as a spectator or if game is in progress.');
+                return;
+            }
+
+            player.ready = true;
+            this.updatePlayerList();
+            this.tryStartGame();
+        });
+
+        // LiveDrawData is just a single CoordinatePair
+        // While DrawData is either a complete turn (DrawPath) or even all turns (up until now)
+        socket.on(UPDATE_TYPE.LIVE_DRAW_DATA, (coords: CoordinatePair) => {
+
+            // Check if currentPlayer is the player sending us data
+            // Should also rule out spectators since those are never currentPlayer anyways
+            // If we reset currentPlayer in LOBBY and RESULTS, this should also prevent sending wrong data here
+            // Maybe also additionally check on client-side
+            if (this.currentPlayer !== player || this.currentTurn >= this.turnDrawdata.length) {
+                console.warn(`Player ${player.playerName} attempted to draw on invalid turn: ${this.currentTurn}`);
+                return;
+            }
+
+            // Send live drawing data so other players can see drawing in realtime
+            this.turnDrawdata[this.currentTurn].points.push(coords);
+            socket.broadcast.to(this.roomId).emit(UPDATE_TYPE.LIVE_DRAW_DATA, this.currentTurn, coords);
+        });
+
+        socket.on(UPDATE_TYPE.TOPIC_SELECTED, (topic: string, hint: string) => {
+            if (this.currentGameState !== GAME_STATE.TOPIC_SELECTION) {
+                return;
+            }
+
+            // NOTE: Come to think of it. Does checking the object equivalence even work
+            // Or should I change other checks to use the actual id? 
+            if (!this.leader || socket.id !== this.leader.id) {
+                this.io.to(socket.id).emit(UPDATE_TYPE.TOPIC_ERROR, 'Only the leader can select a topic.');
+                return;
+            }
+
+            if (topic.length < 2 || hint.length < 2) {
+                this.io.to(socket.id).emit(
+                    UPDATE_TYPE.TOPIC_ERROR,
+                    'The provided topic/hint are too short (min. 2 characters)'
+                );
+                return;
+            }
+
+            this.topic = topic;
+            this.hint = hint;
+
+            console.log(`Topic selected in room ${this.roomId}: ${this.topic}, Hint: ${this.hint}`);
+
+            this.players.forEach((player) => {
+                this.sendTopicToPlayer(player);
+            });
+
+            this.currentGameState = GAME_STATE.DRAWING;
+            // In addition to sending the player list (and thus player turn order)
+            // Should we also ping the next player that its their turn?
+            this.io.to(this.roomId).emit(UPDATE_TYPE.DRAWING_START, this.actualPlayers);
+            this.currentTurn = -1; // Maybe using -1 works?
+            // TODO: This sets the current turn to 1 immediately. Refactor to not have to handle weird
+            // turn numbers somewhere else
+            this.advanceTurn();
+        });
+
+        socket.on(UPDATE_TYPE.TURN_FINISHED, () => {
+            if (this.currentGameState !== GAME_STATE.DRAWING) {
+                return;
+            }
+
+            if (this.currentPlayer !== player) {
+                // Wrong player tried to end the turn
+                return;
+            }
+
+            if (player.isSpectator) {
+                // Player is spectator
+                return;
+            }
+
+            console.log(`Turn finished in room ${this.roomId} by ${player.playerName}`);
+            this.advanceTurn();
+        });
+
+        socket.on(UPDATE_TYPE.VOTE_FOR_PLAYER, (playerIdToVoteFor: string) => {
+            // use persistend id to vote? This could prevent issues when players disconnect
+            // or reconnect during voting phase...
+            if (this.currentGameState !== GAME_STATE.VOTING) {
+                return;
+            }
+
+            const targetPlayer = this.getPlayerByPersistentId(playerIdToVoteFor);
+            if (!targetPlayer) {
+                console.warn(`Target player ${playerIdToVoteFor} not found. Ignoring.`);
+                this.io.to(socket.id).emit(UPDATE_TYPE.VOTE_ERROR, 'Player to vote for not found.');
+                return;
+            }
+
+            const votingPlayer = player; // this.getPlayerBySocketId(socket.id);
+            /*if (!votingPlayer) {
+                console.warn(`Voting player for id ${socket.id} not found! Ignoring.`);
+                return;
+            }*/
+
+            if (votingPlayer.isSpectator) {
+                console.warn(`Voting player ${votingPlayer.playerName} is spectator. Ignoring.`);
+                this.io.to(socket.id).emit(UPDATE_TYPE.VOTE_ERROR, 'You are a spectator or not an active player.');
+                return;
+            }
+
+            const voterIndex = this.canVote.findIndex(p => p.persistentId === votingPlayer.persistentId);
+            if (voterIndex === -1) {
+                this.io.to(socket.id).emit(UPDATE_TYPE.VOTE_ERROR, 'You have already voted or cannot vote.');
+                return;
+            }
+
+            this.canVote.splice(voterIndex, 1);
+            this.playerVotes[targetPlayer.persistentId] = (this.playerVotes[targetPlayer.persistentId] || 0) + 1;
+            console.log(`Player ${votingPlayer.playerName} voted for ${targetPlayer.playerName}. Remaining voters: ${this.canVote.length}`);
+            this.updateVotes();
+        });
+    }
+
+    startGame(): void {
         this.currentGameState = GAME_STATE.TOPIC_SELECTION;
         // Maybe send reduced game state as payload? 
         // Not really necessary since player list + spectator count should always
@@ -340,7 +499,7 @@ export class Game implements IGame {
         this.players.forEach(p => p.isSpectator = false);
         this.updatePlayerList();
         this.emitSpectatorCount();
-    }
+    };
 
     startVoting(): void {
         this.currentGameState = GAME_STATE.VOTING;
@@ -351,13 +510,19 @@ export class Game implements IGame {
             this.playerVotes[p.id] = 0;
         });
 
-        console.log('GAME FINISHED! Starting Voting.');
+        console.log(`Game in Room ${this.roomId} finished! Starting Voting.`);
         this.io.to(this.roomId).emit(UPDATE_TYPE.GAME_FINISH, this.leader, this.actualPlayers);
     };
 
+    tryStartGame(): void {
+        if (this.currentGameState === GAME_STATE.LOBBY && this.allPlayersReady()) {
+            this.startGame();
+        }
+    }
+
     updatePlayerList(): void {
         this.io.to(this.roomId).emit(UPDATE_TYPE.PLAYER_DATA, this.players);
-    }
+    };
 
     updateVotes(): void {
         const voteData: IVoteData = {

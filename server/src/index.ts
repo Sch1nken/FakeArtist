@@ -4,6 +4,8 @@ import { Server, Socket } from "socket.io";
 
 import { Game } from "./game";
 import { RoomCodeGenerator } from "./roomGenerator";
+import { UPDATE_TYPE } from "shared";
+import { MAX_PLAYERS_IN_ROOM } from "./constants";
 
 declare module "socket.io" {
   interface Socket {
@@ -32,12 +34,15 @@ const active_games: { [roomId: string]: Game; } = {};
 
 const roomCodeGenerator = new RoomCodeGenerator();
 
-io.on("connection", (socket: Socket) => {
+io.on(UPDATE_TYPE.CONNECTION, (socket: Socket) => {
   console.log("User connected:", socket.id);
 
-  socket.on("create_room", (username: string, persistentId: string) => {
+  // Creating and Joining a room could be unified
+  // Is I join a non-existent room, it will automatically be created?
+  // This would be bad for user feedback though, as they think they joined a room
+  socket.on(UPDATE_TYPE.CREATE_ROOM, (username: string, persistentId: string) => {
     if (!username || username.trim() === "") {
-      socket.emit("room_error", "Invalid username!");
+      socket.emit(UPDATE_TYPE.ROOM_ERROR, "Invalid username!");
       return;
     }
 
@@ -50,22 +55,22 @@ io.on("connection", (socket: Socket) => {
     active_games[room_id] = game;
 
     console.log(`Room ${room_id} created by ${username} (${socket.id})`);
-    socket.emit("join_room", room_id);
+    socket.emit(UPDATE_TYPE.JOIN_ROOM, room_id);
     game.addPlayer(socket, username.trim(), persistentId);
   });
 
   socket.on(
-    "join_room",
+    UPDATE_TYPE.JOIN_ROOM,
     (room_id: string, username: string, persistentId: string) => {
       const upper_room_id = room_id.toUpperCase();
 
       if (!username || username.trim() === "") {
-        socket.emit("room_error", "Invalid username!");
+        socket.emit(UPDATE_TYPE.ROOM_ERROR, "Invalid username!");
         return;
       }
 
       if (!active_games[upper_room_id]) {
-        socket.emit("room_error", "This room does not exist!");
+        socket.emit(UPDATE_TYPE.ROOM_ERROR, "This room does not exist!");
         return;
       }
 
@@ -73,13 +78,12 @@ io.on("connection", (socket: Socket) => {
 
       const existingPlayer = game.getPlayerByPersistentId(persistentId);
       if (existingPlayer && existingPlayer.id === socket.id) {
-        socket.emit("room_error", "You are already in this room!");
+        socket.emit(UPDATE_TYPE.ROOM_ERROR, "You are already in this room!");
         return;
       }
 
-      const MAX_PLAYERS_IN_ROOM = 10;
       if (game.players.length >= MAX_PLAYERS_IN_ROOM && !existingPlayer) {
-        socket.emit("room_error", "This room is full!");
+        socket.emit(UPDATE_TYPE.ROOM_ERROR, "This room is full!");
         return;
       }
 
@@ -87,11 +91,11 @@ io.on("connection", (socket: Socket) => {
         `User ${username} (${socket.id}) joining room ${upper_room_id}`,
       );
       game.addPlayer(socket, username.trim(), persistentId);
-      socket.emit("join_room", upper_room_id);
+      socket.emit(UPDATE_TYPE.JOIN_ROOM, upper_room_id);
     },
   );
 
-  socket.on("disconnect", () => {
+  socket.on(UPDATE_TYPE.DISCONNECT, () => {
     console.log("User disconnected:", socket.id);
     if (socket.game) {
       socket.game.removePlayer(socket.id);
