@@ -1,4 +1,4 @@
-import Pixi from 'pixi.js';
+import * as Pixi from 'pixi.js';
 
 const fragment = `
 uniform float size;
@@ -13,6 +13,14 @@ void main(){
 	gl_FragColor = vec4(alpha);
 `;
 
+const vertex = `
+  in vec2 aPosition;
+  out vec2 vTextureCoord;
+  void main(void)
+  {
+      gl_Position = filterVertexPosition();
+      vTextureCoord = filterTextureCoord();
+  }`;
 
 export class BrushGenerator {
   filter: Pixi.Filter;
@@ -26,21 +34,31 @@ export class BrushGenerator {
     this.filter = new Pixi.Filter({
       glProgram: Pixi.GlProgram.from({
         fragment: fragment,
-        vertex: ""
+        vertex: vertex
       }),
       resources: {
-        color: [0, 0, 0],
-        erase: 0,
-        size: 16,
-        smoothing: 0.01
+        brushUniforms: {
+          color: {
+            type: 'vec3<f32>',
+            value: [0, 0, 0]
+          },
+          size: {
+            type: 'f32',
+            value: 16,
+          },
+          smoothing: {
+            type: 'f32',
+            value: 0.01
+          }
+        }
       }
     });
   }
 
   get(size: number, color: number[], smoothing: number): Pixi.RenderTexture {
-    this.filter.resources.uniforms.size = size;
-    this.filter.resources.uniforms.color = color;
-    this.filter.resources.uniforms.smoothing = smoothing;
+    this.filter.resources.brushUniforms.size = size;
+    this.filter.resources.brushUniforms.color = color;
+    this.filter.resources.brushUniforms.smoothing = smoothing;
 
     const texture = Pixi.RenderTexture.create({
       height: size,

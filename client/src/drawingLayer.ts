@@ -1,4 +1,4 @@
-import Pixi from 'pixi.js';
+import * as Pixi from 'pixi.js';
 import { BrushGenerator } from './brushGenerator';
 import { SpritePool } from './spritePool';
 import { Point } from 'shared';
